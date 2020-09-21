@@ -3,6 +3,3 @@ This example project will help us get to know the pyxl library for reading in da
 
 ## Feature Branching
 GitHubUsername-featurename
-
-
-## Vlads comment
