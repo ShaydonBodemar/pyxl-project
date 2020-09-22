@@ -5,14 +5,29 @@
 
 from openpyxl import load_workbook
 
-# constructor for 
 class ReadConfig:
     def __init__(self, excel_filename):
-        wb = load_workbook(excel_filename, read_only=True)
-        ws = wb['Chip Roadmap']
+        workbook = load_workbook(excel_filename, read_only=True)
+        chip_profiles = workbook['Chip Roadmap']
 
-        for col in ws.columns:
-            for cell in col:
-                print(cell.value)
+        # Reads in the data labels for the first row to be used later as keys in dict
+        self.metadata_fields = []
+        for cell in chip_profiles[1]:
+            self.metadata_fields.append(cell.value)
 
-        wb.close()
+        # Reads in all data fields to create a full nested dictionary representing each chip's metadata
+        self.chip_profiles = {}
+        for row in chip_profiles.iter_rows(min_row=2):
+            chip_name = row[0].value
+            self.chip_profiles[chip_name] = {}
+            for cell in range(1,len(row)):
+                self.chip_profiles[chip_name][self.metadata_fields[cell]] = row[cell].value
+
+
+        workbook.close()
+
+    def ReadChipMetaData:
+        # TODO: reading of the metadata for each chip
+
+    def ReadChipTierData:
+        # TODO: read in TO-based data for every tier of chips
