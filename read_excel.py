@@ -12,9 +12,11 @@ class ReadConfig:
     @note Only opens the file to be used and initializes the member variables.
     """
     def __init__(self, excel_filename):
-        self._workbook = load_workbook(excel_filename, read_only=True)
-        self._metadata_fields = []
-        self._chip_profiles = {}
+        self._workbook = load_workbook(excel_filename)  # The workbook opened using openpyxl library (cannot be read_only=True to allow cell.col_idx)
+        self._metadata_fields = []                      # Array of fields for chip metadata
+        self._chip_profiles = {}                        # Nested Dictionary to map each chip to its metadata by name
+        self._tapeout_offset = 0                        # Offset of the TO (tapeout) date from intial value (time prior to TO)
+        self._tool_usage_by_tier = {}                   # Dictionary of arrays of tool usage data for each tier of chip
     
 
     """
@@ -29,29 +31,44 @@ class ReadConfig:
     @brief Reads the metadata for each chip (scaler, TO date, etc)
     @param worksheet_name Name of the worksheet to be used for reading in appropriate data
     @note Wipes any metadata currently stored
+    TODO: Handle incorrect/nonexistent worksheet_name
     """
     def ReadChipMetaData(self, worksheet_name):
-        chip_profiles = self._workbook[worksheet_name]
+        cur_worksheet = self._workbook[worksheet_name]
 
         # Reads in the data labels for the first row to be used later as keys in dict
         self._metadata_fields = []
-        for cell in chip_profiles[1]:
+        for cell in cur_worksheet[1]:
             self._metadata_fields.append(cell.value)
 
         # Reads in all data fields to create a full nested dictionary representing each chip's metadata
         self._chip_profiles = {}
-        for row in chip_profiles.iter_rows(min_row=2):
+        for row in cur_worksheet.iter_rows(min_row=2):
             chip_name = row[0].value
             self._chip_profiles[chip_name] = {}
             for cell in range(1,len(row)):
                 self._chip_profiles[chip_name][self._metadata_fields[cell]] = row[cell].value
-        # print(self._chip_profiles)
 
 
     """
     @brief Reads the tool usage profiles for each chip tier
     @param worksheet_name Name of the worksheet to be used for reading in appropriate data
+    @note Overwites any tier data previously present
+    TODO: Handle incorrect/nonexistent worksheet_name
+    NOTE: TO offset conditional could be handled dynamically if parameter is taken
     """
     def ReadChipTierData(self, worksheet_name):
-        # TODO: read in TO-based data for every tier of chips
-        print(1)
+        cur_worksheet = self._workbook[worksheet_name]
+
+        # Determines the offset of the TO date
+        for cell in cur_worksheet[1]:
+            if cell.value == 'TO':
+                self._tapeout_offset = cell.col_idx - 2     # subtract two to account for non-data first column and 0 starting index
+
+        # Reads in all tool usage data and maps it to the appropriate tier
+        self._tool_usage_by_tier = {}
+        for row in cur_worksheet.iter_rows(min_row=2):
+            tier_name = row[0].value
+            self._tool_usage_by_tier[tier_name] = []
+            for cell in range(1,len(row)):
+                self._tool_usage_by_tier[tier_name].append(row[cell].value)
