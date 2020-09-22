@@ -6,6 +6,10 @@
 from openpyxl import load_workbook
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
+import numpy as np
+from numpy import ma
+import matplotlib
+import matplotlib.pyplot as plt
 
 class ReadConfig:
     """
@@ -73,7 +77,10 @@ class ReadConfig:
             tier_name = row[0].value
             self._tool_usage_by_tier[tier_name] = []
             for cell in range(1,len(row)):
-                self._tool_usage_by_tier[tier_name].append(row[cell].value)
+                if row[cell].value == None:
+                    self._tool_usage_by_tier[tier_name].append(0)
+                else:
+                    self._tool_usage_by_tier[tier_name].append(row[cell].value)
 
     
     """
@@ -114,3 +121,49 @@ class ReadConfig:
             if (self._chip_profiles[chip]['TO Date'] + months_prior) > latest:
                 latest = self._chip_profiles[chip]['TO Date'] + months_prior
         return latest
+
+    
+    """
+    @brief Creates an array of all months between a given start and end date
+    @param begin_date Represents the date the array will start at
+    @param end_date Represents the date the array will end at
+    """
+    def DateRangeList(self, begin_date, end_date):
+        cur_date = begin_date
+        date_range = []
+        while cur_date <= end_date:
+            date_range.append(cur_date)
+            cur_date += relativedelta(months=1)
+        return date_range
+
+
+    """
+    @brief Creates the plot of the data once read in
+    TODO: Ensure data is actually present for required fields
+    TODO: Dynamic handling of field names
+    NOTE: Typo for Scaler
+    """
+    def PlotData(self):
+        chip_names = []
+        for chip in self._chip_profiles:
+            chip_names.append(chip)
+
+        date_range = self.DateRangeList(self.EarliestDateOfConcern(), self.LatestDateOfConcern())
+
+        # TODO: Fill to size of full arrays
+        all_data = []
+        for chip in chip_names:
+            full_offset = date_range.index(self._chip_profiles[chip]['TO Date']) - self._tapeout_offset
+            print(full_offset)
+            profile = np.array(self._tool_usage_by_tier[self._chip_profiles[chip]['Tier']])
+            profile = np.multiply(profile, self._chip_profiles[chip]['Scaler'])
+            profile = np.pad(profile, (full_offset, len(date_range)-full_offset-profile.size), 'constant')
+            all_data.append(profile.tolist())
+        # TODO: remove after debugging
+        print(all_data)
+        # TODO: remove after debugging
+        print(len(all_data[0]) == len(date_range))
+
+        plt.stackplot(date_range, all_data, labels=chip_names)
+        plt.legend(loc='upper left')
+        plt.savefig('stacked_area_chart.png')
