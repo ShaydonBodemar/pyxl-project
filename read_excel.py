@@ -84,10 +84,12 @@ class ReadConfig:
     def WriteAllProfileData(self, worksheet_name):
         return 1
 
+
     """
     @brief Finds the earliest date on which there will be tool usage based on the data
     TODO: Handle edge cases (unpopulated data structures)
     TODO: Handle dynamic searching for 'TO Date' field
+    TODO: Account for empty begin dates
     """
     def EarliestDateOfConcern(self):
         earliest = datetime.max
@@ -96,3 +98,19 @@ class ReadConfig:
             if (self._chip_profiles[chip]['TO Date'] - months_prior) < earliest:
                 earliest = self._chip_profiles[chip]['TO Date'] - months_prior
         return earliest
+
+    
+    """
+    @brief Finds the latest date on which there will be tool usage based on the data
+    TODO: Handle edge cases (unpopulated data structures)
+    TODO: Handle dynamic searching for 'TO Date' field
+    TODO: Account for empty end dates
+    """
+    def LatestDateOfConcern(self):
+        latest = datetime.min
+        months_offset = len(self._tool_usage_by_tier[next(iter(self._tool_usage_by_tier))]) - self._tapeout_offset
+        months_prior = relativedelta(months=months_offset)
+        for chip in self._chip_profiles:
+            if (self._chip_profiles[chip]['TO Date'] + months_prior) > latest:
+                latest = self._chip_profiles[chip]['TO Date'] + months_prior
+        return latest
