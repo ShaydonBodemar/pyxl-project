@@ -4,6 +4,8 @@
 # Overview: This module will be primarily responsible for inputting the data from the excel sheet for all model parameters.
 
 from openpyxl import load_workbook
+from datetime import datetime, timedelta
+from dateutil.relativedelta import relativedelta
 
 class ReadConfig:
     """
@@ -51,7 +53,7 @@ class ReadConfig:
 
 
     """
-    @brief Reads the tool usage profiles for each chip tier
+    @brief Reads the tool usage profiles for each tier
     @param worksheet_name Name of the worksheet to be used for reading in appropriate data
     @note Overwites any tier data previously present
     TODO: Handle incorrect/nonexistent worksheet_name
@@ -72,3 +74,25 @@ class ReadConfig:
             self._tool_usage_by_tier[tier_name] = []
             for cell in range(1,len(row)):
                 self._tool_usage_by_tier[tier_name].append(row[cell].value)
+
+    
+    """
+    @brief Writes all scaled profile usage data for each chip
+    @param worksheet_name Name of the worksheet to be used for writing data
+    NOTE: Handle worksheet_name that already exists to prevent overwriting
+    """
+    def WriteAllProfileData(self, worksheet_name):
+        return 1
+
+    """
+    @brief Finds the earliest date on which there will be tool usage based on the data
+    TODO: Handle edge cases (unpopulated data structures)
+    TODO: Handle dynamic searching for 'TO Date' field
+    """
+    def EarliestDateOfConcern(self):
+        earliest = datetime.max
+        months_prior = relativedelta(months=self._tapeout_offset)
+        for chip in self._chip_profiles:
+            if (self._chip_profiles[chip]['TO Date'] - months_prior) < earliest:
+                earliest = self._chip_profiles[chip]['TO Date'] - months_prior
+        return earliest
